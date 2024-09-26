@@ -27,16 +27,15 @@
 
 ;;; Code:
 
-(require 'cl-lib)
+(eval-when-compile (require 'cl-lib))
 (require 'subr-x)
-(require 'org)
 
 (defconst elisp-demos--load-dir (file-name-directory
                                  (or load-file-name buffer-file-name)))
 
 (defconst elisp-demos--elisp-demos.org (expand-file-name
-                             "elisp-demos.org"
-                             elisp-demos--load-dir))
+                                        "elisp-demos.org"
+                                        elisp-demos--load-dir))
 
 (defcustom elisp-demos-user-files nil
   "Files to search in addition to the one from the elisp-demos package.
@@ -50,18 +49,20 @@ If set, new notes are added to the first file in this list."
       (when (file-exists-p file)
         (with-temp-buffer
           (insert-file-contents file)
-          (delay-mode-hooks (org-mode))
-          (let ((pos (org-find-exact-headline-in-buffer (symbol-name symbol))))
-            (when pos
-              (goto-char pos)
-              (forward-line)
+          (goto-char (point-min))
+          (when (re-search-forward
+                 (format "^\\* %s$" (regexp-quote (symbol-name symbol)))
+                 nil t)
+            (let (beg end)
+              (forward-line 1)
+              (setq beg (point))
+              (if (re-search-forward "^\\*" nil t)
+                  (setq end (line-beginning-position))
+                (setq end (point-max)))
               (push (propertize
-                     (string-trim
-                      (buffer-substring-no-properties
-                       (point)
-                       (org-end-of-subtree)))
+                     (string-trim (buffer-substring-no-properties beg end))
                      'file file
-                     'pos (marker-position pos))
+                     'pos beg)
                     results))))))
     (when results
       (string-join (nreverse results) "\n\n"))))
